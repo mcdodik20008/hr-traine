@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    container_name: hr_traine_bot
+    restart: always
+    env_file:
+      - .env
+    depends_on:
+      - db
+    volumes:
+      - .:/app
+    command: python -m app.bot.main
+
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: hr_traine_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-hr_traine}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_hr:/var/lib/postgresql/data
+
+volumes:
+  postgres_data_hr:
