@@ -46,6 +46,11 @@ async def test_engine():
             Column('step_type', String, default='content'),
             Column('estimated_duration', Integer, default=0),
             Column('content_url', String, nullable=True),
+            Column('collection_flow', Text, nullable=True),
+            Column('excel_sheet', String, nullable=True),
+            Column('evaluation_prompt', Text, nullable=True),
+            Column('evaluation_criteria', Text, nullable=True),
+            Column('passing_score', Float, default=3.0),
         )
         
         # Create candidate_profiles with a dummy embedding column (as TEXT for SQLite)

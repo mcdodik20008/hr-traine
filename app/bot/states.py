@@ -11,4 +11,5 @@ class OnboardingStates(StatesGroup):
 class InterviewStates(StatesGroup):
     choosing_candidate = State()
     in_interview = State()
+    showing_report = State()  # After interview ends, before clearing state
     feedback = State()

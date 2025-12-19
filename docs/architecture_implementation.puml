@@ -1,0 +1,344 @@
+@startuml HR_Training_Bot_Implementation
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam classAttributeIconSize 0
+
+title Диаграмма классов реализации\nСистема обучения HR-интервьюеров
+left to right direction
+
+package "app.bot.handlers" as handlers #E8F4F8 {
+    class common {
+        + cmd_start(message, state)
+        + cmd_help(message)
+    }
+    
+    class registration {
+        + process_name(message, state)
+    }
+    
+    class onboarding {
+        + cmd_onboarding(message, state)
+        + process_step(message, state)
+        + handle_file_upload(message, state)
+    }
+    
+    class interview {
+        + cmd_interview(message, state)
+        + start_interview(message, state)
+        + process_chat(message, state)
+        - _format_interview_report(report: dict): str
+        - _persist_chat(interview_id, user_msg, bot_reply)
+    }
+    
+    class expert {
+        + cmd_expert(message, state)
+        + cmd_review(message, state)
+        + process_grading(message, state)
+    }
+}
+
+package "app.bot" as bot {
+    class states {
+        <<enumeration>>
+        RegistrationStates
+        OnboardingStates  
+        InterviewStates
+    }
+    
+    class main {
+        + main()
+        - setup_handlers(dp, router)
+    }
+}
+
+package "app.core" as core #FFF4E6 {
+    class LLMClient {
+        - provider: str
+        - model: GenerativeModel
+        - model_name: str
+        - _initialized: bool
+        - _gigachat_access_token: str
+        --
+        + generate_response(prompt, history): str
+        + simulate_candidate(resume, message, history, psychotype): str
+        + detect_interview_farewell(message, history, resume, psychotype): dict
+        + generate_interview_report(history, resume, psychotype): dict
+        + validate_search_map(excel_data): dict
+        + evaluate_submission(step, user_data): dict
+        --
+        - _try_initialize_gemini(): bool
+        - _try_initialize_gigachat(): bool
+        - _generate_gemini(prompt, history): str
+        - _generate_gigachat(prompt, history): str
+        - _get_gigachat_token(): str
+    }
+    
+    class llm_client {
+        <<global>>
+        + parse_structured_data(text, instruction): dict
+        + evaluate_submission(step, data): dict
+    }
+    
+    class search_map {
+        + validate_search_map_file(file_path): dict
+        + extract_data_for_llm(file_path): dict
+        + validate_with_llm(excel_data): dict
+    }
+}
+
+package "app.database" as database #E8F5E9 {
+    class base {
+        + Base: DeclarativeBase
+        + get_session(): AsyncSession
+        + init_db()
+    }
+    
+    class models {
+        <<models>>
+    }
+    
+    class User {
+        + id: int
+        + telegram_id: int
+        + username: str
+        + full_name: str
+        + role: UserRole
+        + created_at: datetime
+        --
+        + onboarding_submissions: List[OnboardingSubmission]
+        + interviews: List[InterviewSession]
+    }
+    
+    class OnboardingStep {
+        + id: int
+        + title: str
+        + description: str
+        + order: int
+        + step_type: StepType
+        + estimated_duration: int
+        + collection_flow: str
+        + evaluation_prompt: str
+        + evaluation_criteria: str
+        + passing_score: float
+        --
+        + submissions: List[OnboardingSubmission]
+    }
+    
+    class OnboardingSubmission {
+        + id: int
+        + user_id: int
+        + step_id: int
+        + file_path: str
+        + text_answer: str
+        + auto_check_result: str
+        + expert_score: int
+        + expert_comment: str
+        + status: str
+        + started_at: datetime
+        + created_at: datetime
+        + time_warning: str
+        + evaluation_score: float
+        --
+        + get_completion_time_minutes(): float
+    }
+    
+    class CandidateProfile {
+        + id: int
+        + name: str
+        + resume_text: str
+        + category: str
+        + psychotype: str
+        + embedding: Vector
+        --
+        + interviews: List[InterviewSession]
+    }
+    
+    class InterviewSession {
+        + id: int
+        + user_id: int
+        + candidate_id: int
+        + start_time: datetime
+        + end_time: datetime
+        + transcript: str
+        + chat_history: str
+        + auto_feedback: str
+        + expert_score: int
+        + expert_comment: str
+        + is_passed: bool
+        --
+        + user: User
+        + candidate: CandidateProfile
+    }
+    
+    enum UserRole {
+        STUDENT
+        EXPERT
+        ADMIN
+    }
+    
+    enum StepType {
+        CONTENT
+        FILE_UPLOAD
+        TEXT_INPUT
+        OFFLINE
+        QUESTION
+        SELF_REPORT
+        EVALUATION
+        CONFIRMATION
+    }
+}
+
+package "app.scripts" as scripts {
+    class seed_labs {
+        + seed_onboarding_steps()
+    }
+    
+    class seed_candidates {
+        + seed_candidate_profiles()
+    }
+}
+
+package "app" as app_root {
+    class config {
+        + BOT_TOKEN: str
+        + GEMINI_API_KEY: str
+        + GIGACHAT_CLIENT_ID: str
+        + GIGACHAT_CLIENT_SECRET: str
+        + POSTGRES_USER: str
+        + POSTGRES_PASSWORD: str
+        + POSTGRES_DB: str
+        + DATABASE_URL: str
+    }
+}
+
+package "alembic.versions" as migrations {
+    class "6cee592f9ee6_add_time_tracking" {
+        + upgrade()
+        + downgrade()
+    }
+    
+    class "20251207_onboarding" {
+        + upgrade()
+        + downgrade()
+    }
+    
+    class "20251215_collection_flow" {
+        + upgrade()
+        + downgrade()
+    }
+    
+    class "20251219_candidates" {
+        + upgrade()
+        + downgrade()
+    }
+}
+
+package "External APIs" as external #FFE6E6 {
+    interface "Google Gemini API" as GeminiAPI
+    interface "GigaChat API" as GigaChatAPI
+    interface "Telegram Bot API" as TelegramAPI
+}
+
+' Relationships - Handlers
+common ..> states : использует
+registration ..> states : использует
+onboarding ..> states : использует
+interview ..> states : использует
+expert ..> states : использует
+
+interview ..> LLMClient : использует
+onboarding ..> LLMClient : использует
+onboarding ..> search_map : использует
+
+interview ..> User : работает с
+interview ..> CandidateProfile : работает с
+interview ..> InterviewSession : создает
+
+onboarding ..> User : работает с
+onboarding ..> OnboardingStep : работает с
+onboarding ..> OnboardingSubmission : создает
+
+expert ..> OnboardingSubmission : проверяет
+expert ..> User : работает с
+
+registration ..> User : создает
+
+main --> common : регистрирует
+main --> registration : регистрирует
+main --> onboarding : регистрирует
+main --> interview : регистрирует
+main --> expert : регистрирует
+
+' Relationships - Core
+LLMClient ..> GeminiAPI : использует
+LLMClient ..> GigaChatAPI : использует (fallback)
+llm_client --> LLMClient : содержит instance
+search_map ..> LLMClient : использует
+
+' Relationships - Database
+User "1" -- "0..*" OnboardingSubmission
+User "1" -- "0..*" InterviewSession
+OnboardingStep "1" -- "0..*" OnboardingSubmission
+CandidateProfile "1" -- "0..*" InterviewSession
+InterviewSession "*" -- "1" User
+InterviewSession "*" -- "1" CandidateProfile
+
+User --> UserRole : имеет
+OnboardingStep --> StepType : имеет
+
+models --> User : содержит
+models --> OnboardingStep : содержит
+models --> OnboardingSubmission : содержит
+models --> CandidateProfile : содержит
+models --> InterviewSession : содержит
+models --> UserRole : содержит
+models --> StepType : содержит
+
+base --> models : использует
+
+' Scripts
+seed_labs ..> OnboardingStep : создает
+seed_candidates ..> CandidateProfile : создает
+seed_labs ..> base : использует
+seed_candidates ..> base : использует
+
+' Config
+config ..> app_root : конфигурирует
+LLMClient ..> config : читает
+base ..> config : читает
+main ..> config : читает
+
+' Migrations
+migrations ..> base : изменяет схему
+
+' External
+main ..> TelegramAPI : взаимодействует
+
+note top of LLMClient
+    Центральный класс для работы с LLM.
+    Автоматическое переключение между
+    Gemini (основной) и GigaChat (резервный).
+    Содержит все методы генерации текста.
+end note
+
+note right of interview
+    Реализует полный цикл интервью:
+    - Выбор кандидата
+    - Пошаговый диалог
+    - Автоопределение прощания
+    - Генерация отчета
+end note
+
+note bottom of OnboardingSubmission
+    Отслеживает время выполнения
+    через started_at и created_at.
+    Хранит LLM оценку и предупреждения.
+end note
+
+note bottom of InterviewSession
+    chat_history - JSON история диалога
+    auto_feedback - JSON отчет с оценками
+    is_passed - автоматически из overall_score
+end note
+
+@enduml

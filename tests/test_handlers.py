@@ -177,13 +177,37 @@ class TestInterviewHandlers:
         mock_state.set_state.assert_called_once_with(InterviewStates.in_interview)
     
     @pytest.mark.asyncio
-    async def test_process_chat_stop(self, mock_message, mock_state):
-        """Test stopping interview chat"""
-        mock_message.text = "/stop"
+    async def test_process_chat_farewell(self, mock_message, mock_state, mocker):
+        """Test interview ending with farewell detection"""
+        mock_message.text = "Спасибо за интервью, до свидания!"
+        
+        # Mock state data
+        mock_state.get_data = AsyncMock(return_value={
+            "candidate_resume": "5 years in sales",
+            "candidate_psychotype": "Target",
+            "history": [],
+            "interview_id": None
+        })
+        
+        # Mock LLM client
+        mock_llm = mocker.patch('app.bot.handlers.interview.llm_client')
+        mock_llm.detect_interview_farewell = AsyncMock(return_value={
+            "is_farewell": True,
+            "farewell_message": "Спасибо за интервью!"
+        })
+        mock_llm.generate_interview_report = AsyncMock(return_value={
+            "overall_score": 7.5,
+            "category_scores": {"structure": 8},
+            "strengths": ["Good questions"],
+            "weaknesses": ["Could improve timing"],
+            "recommendations": ["Practice more"],
+            "detailed_feedback": "Good interview overall."
+        })
         
         await interview.process_chat(mock_message, mock_state)
         
-        mock_message.answer.assert_called_once()
+        # Should send farewell and report
+        assert mock_message.answer.call_count >= 2  # Farewell + Loading + Report
         mock_state.clear.assert_called_once()
     
     @pytest.mark.asyncio
@@ -195,11 +219,16 @@ class TestInterviewHandlers:
         mock_state.get_data = AsyncMock(return_value={
             "candidate_resume": "5 years in sales",
             "candidate_psychotype": "Target",
-            "history": []
+            "history": [],
+            "interview_id": None
         })
         
         # Mock LLM client
         mock_llm = mocker.patch('app.bot.handlers.interview.llm_client')
+        mock_llm.detect_interview_farewell = AsyncMock(return_value={
+            "is_farewell": False,
+            "farewell_message": ""
+        })
         mock_llm.simulate_candidate = AsyncMock(return_value="I have 5 years of experience...")
         
         await interview.process_chat(mock_message, mock_state)

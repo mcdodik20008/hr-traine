@@ -70,32 +70,19 @@ async def start_interview(message: types.Message, state: FSMContext):
         emoji = psychotype_emoji.get(candidate.psychotype, "👤")
         
         await message.answer(
-            f"Interview started with {candidate.name} {emoji}\n"
-            f"<b>Psychotype:</b> {candidate.psychotype or 'Target'}\n\n"
-            f"<b>Resume:</b> {candidate.resume_text}\n\n"
-            f"Say 'Hello' to start. Type /stop to finish.",
+            f"✅ <b>Интервью с {candidate.name}</b> {emoji}\n"
+            f"<b>Психотип:</b> {candidate.psychotype or 'Target'}\n\n"
+            f"💬 Поздоровайтесь с кандидатом, чтобы начать интервью.\n"
+            f"Бот будет отвечать на ваши вопросы от лица кандидата.\n\n"
+            f"🛑 Когда закончите, попрощайтесь с кандидатом.",
             parse_mode="HTML",
             reply_markup=types.ReplyKeyboardRemove()
         )
         await state.set_state(InterviewStates.in_interview)
 
+
 @router.message(InterviewStates.in_interview)
 async def process_chat(message: types.Message, state: FSMContext):
-    if message.text.lower() in ["/stop", "stop", "finish"]:
-        data = await state.get_data()
-        interview_id = data.get("interview_id")
-        if interview_id:
-            from datetime import datetime
-            async for session in get_session():
-                result = await session.execute(select(InterviewSession).where(InterviewSession.id == interview_id))
-                interview_row = result.scalar_one_or_none()
-                if interview_row:
-                    interview_row.end_time = interview_row.end_time or datetime.now()
-                    await session.commit()
-        await message.answer("Interview finished.")
-        await state.clear()
-        return
-
     data = await state.get_data()
     resume = data.get("candidate_resume")
     psychotype = data.get("candidate_psychotype", "Target")
@@ -103,18 +90,132 @@ async def process_chat(message: types.Message, state: FSMContext):
     interview_id = data.get("interview_id")
     
     # User message
-    history.append({"role": "user", "parts": [message.text]})
+    user_message = message.text
+    history.append({"role": "user", "parts": [user_message]})
     
-    # Generate response with psychotype
-    response_text = await llm_client.simulate_candidate(resume, message.text, history, psychotype)
+    # Check if this is a farewell
+    farewell_result = await llm_client.detect_interview_farewell(
+        user_message=user_message,
+        conversation_history=history,
+        resume_text=resume,
+        psychotype=psychotype
+    )
+    
+    if farewell_result.get("is_farewell", False):
+        # This is a farewell - send farewell message and generate report
+        farewell_message = farewell_result.get("farewell_message", "Спасибо за интервью!")
+        
+        # Add farewell to history
+        history.append({"role": "model", "parts": [farewell_message]})
+        await state.update_data(history=history)
+        
+        # Persist farewell in DB
+        if interview_id:
+            await _persist_chat(interview_id, user_message, farewell_message)
+        
+        # Send farewell message
+        await message.answer(farewell_message)
+        
+        # Generate interview report
+        await message.answer("⏳ Генерирую отчет о проведенном интервью...")
+        
+        report = await llm_client.generate_interview_report(
+            conversation_history=history,
+            candidate_resume=resume,
+            psychotype=psychotype
+        )
+        
+        # Format and send report
+        report_text = _format_interview_report(report)
+        await message.answer(report_text, parse_mode="HTML")
+        
+        # Save report to database
+        if interview_id:
+            from datetime import datetime
+            async for session in get_session():
+                result = await session.execute(select(InterviewSession).where(InterviewSession.id == interview_id))
+                interview_row = result.scalar_one_or_none()
+                if interview_row:
+                    interview_row.end_time = datetime.now()
+                    interview_row.auto_feedback = json.dumps(report, ensure_ascii=False)
+                    interview_row.is_passed = report.get("overall_score", 0) >= 6.0
+                    await session.commit()
+        
+        # Clear state
+        await state.clear()
+        return
+    
+    # Not a farewell - generate normal candidate response
+    response_text = await llm_client.simulate_candidate(resume, user_message, history, psychotype)
     
     history.append({"role": "model", "parts": [response_text]})
     await state.update_data(history=history)
     
     if interview_id:
-        await _persist_chat(interview_id, message.text, response_text)
+        await _persist_chat(interview_id, user_message, response_text)
     
     await message.answer(response_text)
+
+
+def _format_interview_report(report: dict) -> str:
+    """Форматирует отчет интервью в красивый HTML для Telegram"""
+    overall_score = report.get("overall_score", 0)
+    category_scores = report.get("category_scores", {})
+    strengths = report.get("strengths", [])
+    weaknesses = report.get("weaknesses", [])
+    recommendations = report.get("recommendations", [])
+    detailed_feedback = report.get("detailed_feedback", "")
+    
+    # Определяем эмодзи по оценке
+    if overall_score >= 8:
+        score_emoji = "🌟"
+    elif overall_score >= 6:
+        score_emoji = "✅"
+    elif overall_score >= 4:
+        score_emoji = "⚠️"
+    else:
+        score_emoji = "❌"
+    
+    text = f"""
+📊 <b>ОТЧЕТ О ПРОВЕДЕННОМ ИНТЕРВЬЮ</b>
+
+{score_emoji} <b>Общая оценка: {overall_score}/10</b>
+
+<b>📈 Оценки по категориям:</b>
+"""
+    
+    category_names = {
+        "structure": "Структура интервью",
+        "questions_quality": "Качество вопросов",
+        "active_listening": "Активное слушание",
+        "psychotype_handling": "Работа с психотипом",
+        "professionalism": "Профессионализм"
+    }
+    
+    for key, value in category_scores.items():
+        name = category_names.get(key, key)
+        text += f"  • {name}: {value}/10\n"
+    
+    if strengths:
+        text += f"\n<b>💪 Сильные стороны:</b>\n"
+        for strength in strengths:
+            text += f"  ✓ {strength}\n"
+    
+    if weaknesses:
+        text += f"\n<b>⚡️ Области для улучшения:</b>\n"
+        for weakness in weaknesses:
+            text += f"  • {weakness}\n"
+    
+    if recommendations:
+        text += f"\n<b>💡 Рекомендации:</b>\n"
+        for i, rec in enumerate(recommendations, 1):
+            text += f"  {i}. {rec}\n"
+    
+    if detailed_feedback:
+        text += f"\n<b>📝 Детальный feedback:</b>\n{detailed_feedback}"
+    
+    return text.strip()
+
 
 async def _persist_chat(interview_id: int, user_message: str, bot_reply: str):
     """

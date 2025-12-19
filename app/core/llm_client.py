@@ -421,10 +421,100 @@ class LLMClient:
 4. НЕ говори фразы типа "как я могу помочь" или "чем могу быть полезен" от лица AI
 5. Если вопрос выходит за рамки резюме, импровизируй в рамках роли или скажи "я не уверен"
 6. Веди себя как настоящий человек на собеседовании
+
+КРИТИЧЕСКИ ВАЖНО:
+- Дай ТОЛЬКО ОДИН короткий ответ на последний вопрос интервьюера
+- НЕ пиши весь диалог целиком
+- НЕ повторяй предыдущие реплики
+- Ответь ТОЛЬКО как кандидат на ЭТОТ конкретный вопрос
 """
         
         full_prompt = f"{system_prompt}\n\nИнтервьюер: {user_message}\nКандидат:"
-        return await self.generate_response(full_prompt)
+        return await self.generate_response(full_prompt, conversation_history)
+    
+    async def detect_interview_farewell(self, user_message: str, conversation_history: list, resume_text: str, psychotype: str = "Target") -> dict:
+        """
+        Определяет, попрощался ли интервьюер с кандидатом.
+        
+        Args:
+            user_message: Последнее сообщение от HR
+            conversation_history: История диалога
+            resume_text: Резюме кандидата для контекста
+            psychotype: Психотип кандидата
+            
+        Returns:
+            dict: {"is_farewell": bool, "farewell_message": str}
+        """
+        # Формируем контекст из последних 3 сообщений
+        context_messages = []
+        if conversation_history:
+            recent = conversation_history[-6:]  # Последние 3 пары сообщений
+            for msg in recent:
+                if isinstance(msg, dict):
+                    if "role" in msg and "parts" in msg:
+                        role = "HR" if msg["role"] == "user" else "Кандидат"
+                        content = msg["parts"][0] if isinstance(msg["parts"], list) else str(msg["parts"])
+                        context_messages.append(f"{role}: {content}")
+        
+        context = "\n".join(context_messages[-6:]) if context_messages else "Начало интервью"
+        
+        prompt = f"""
+Ты анализируешь диалог собеседования. Определи, попрощался ли интервьюер (HR) с кандидатом.
+
+ПОСЛЕДНЕЕ СООБЩЕНИЕ HR: {user_message}
+
+КОНТЕКСТ (последние сообщения):
+{context}
+
+Признаки прощания:
+- Благодарность за интервью ("спасибо за интервью", "спасибо за время")
+- Фразы "до свидания", "всего доброго", "на этом закончим"
+- Сообщение о следующих шагах ("мы с вами свяжемся", "ждите нашего звонка")
+- Завершающие формулировки ("это все вопросы", "интервью окончено")
+
+ВАЖНО: 
+- Вопрос "У вас есть вопросы ко мне?" - это НЕ прощание (это часть интервью)
+- "Расскажите о себе" - это НЕ прощание
+- "Почему вы хотите работать у нас?" - это НЕ прощание
+- Только ЯВНОЕ завершение интервью считается прощанием
+
+Если это прощание, сгенерируй КРАТКИЙ ответ кандидата (1-2 предложения) в характере психотипа "{psychotype}":
+- Target: вежливое "Спасибо за интервью, было приятно пообщаться!"
+- Toxic: слегка высокомерное "Ну наконец-то. Надеюсь, не зря потратил время."
+- Silent: минималистичное "Спасибо. До свидания."
+- Evasive: расплывчатое "Спасибо, было интересно. Всего доброго."
+
+ФОРМАТ ОТВЕТА (строго JSON):
+{{
+  "is_farewell": true/false,
+  "farewell_message": "ответ кандидата (если is_farewell=true, иначе пустая строка)"
+}}
+"""
+        
+        try:
+            response = await self.generate_response(prompt)
+            
+            # Extract JSON from response
+            if "```json" in response:
+                response = response.split("```json")[1].split("```")[0].strip()
+            elif "```" in response:
+                response = response.split("```")[1].split("```")[0].strip()
+            
+            import json
+            result = json.loads(response)
+            
+            # Validate result
+            if "is_farewell" not in result:
+                result["is_farewell"] = False
+            if "farewell_message" not in result:
+                result["farewell_message"] = ""
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error detecting farewell: {e}")
+            # Default to not farewell on error
+            return {"is_farewell": False, "farewell_message": ""}
     
     async def validate_search_map(self, excel_data: dict) -> dict:
         """
@@ -625,6 +715,158 @@ class LLMClient:
                 "feedback": f"Оценка обработана. {response[:200]}",
                 "criteria_scores": {}
             }
+
+
+    async def generate_interview_report(self, conversation_history: list, candidate_resume: str, psychotype: str = "Target") -> dict:
+        """
+        Генерирует отчет о проведенном интервью с оценками и рекомендациями.
+        
+        Args:
+            conversation_history: Полная история диалога интервью
+            candidate_resume: Резюме кандидата
+            psychotype: Психотип кандидата
+            
+        Returns:
+            dict: {
+                "overall_score": float,
+                "category_scores": dict,
+                "strengths": list,
+                "weaknesses": list,
+                "key_moments": list,
+                "recommendations": list,
+                "detailed_feedback": str
+            }
+        """
+        # Форматируем историю диалога
+        dialogue = []
+        for msg in conversation_history:
+            if isinstance(msg, dict):
+                if "role" in msg and "parts" in msg:
+                    role = "HR" if msg["role"] == "user" else "Кандидат"
+                    content = msg["parts"][0] if isinstance(msg["parts"], list) else str(msg["parts"])
+                    dialogue.append(f"{role}: {content}")
+        
+        dialogue_text = "\n".join(dialogue)
+        
+        prompt = f"""
+Ты эксперт-HR, оцениваешь качество проведенного собеседования.
+
+ИНФОРМАЦИЯ О КАНДИДАТЕ:
+- Психотип: {psychotype}
+- Резюме: {candidate_resume}
+
+ПОЛНАЯ ИСТОРИЯ ДИАЛОГА ИНТЕРВЬЮ:
+{dialogue_text}
+
+ЗАДАЧА:
+Оцени, насколько хорошо тренируемый HR провел интервью с этим кандидатом.
+
+КРИТЕРИИ ОЦЕНКИ (шкала 1-10):
+1. **Структура интервью** - есть ли вступление, основные вопросы, заключение
+2. **Качество вопросов** - использует ли открытые, зондирующие, релевантные вопросы
+3. **Активное слушание** - задает ли follow-up вопросы, уточнения
+4. **Работа с психотипом** - адаптирует ли стиль под особенности кандидата
+5. **Профессионализм** - вежливость, управление временем, корректное завершение
+
+ВАЖНО:
+- Оценивай РЕАЛЬНО, не завышай оценки
+- Укажи 2-3 конкретных сильных момента из диалога
+- Укажи 2-3 конкретных слабых момента из диалога
+- Дай 3-5 практических рекомендаций по улучшению
+
+ФОРМАТ ОТВЕТА (строго JSON):
+{{
+  "overall_score": 7.5,
+  "category_scores": {{
+    "structure": 8,
+    "questions_quality": 7,
+    "active_listening": 6,
+    "psychotype_handling": 8,
+    "professionalism": 9
+  }},
+  "strengths": [
+    "конкретный пример хорошего момента из диалога с цитатой",
+    "еще один сильный момент"
+  ],
+  "weaknesses": [
+    "конкретный пример слабого момента из диалога",
+    "еще одна слабость"
+  ],
+  "key_moments": [
+    {{
+      "moment": "краткое описание момента из диалога",
+      "rating": "good",
+      "comment": "почему это было хорошо"
+    }},
+    {{
+      "moment": "другой момент",
+      "rating": "bad",
+      "comment": "что можно было сделать лучше"
+    }}
+  ],
+  "recommendations": [
+    "конкретный совет по улучшению",
+    "еще одна рекомендация",
+    "третья рекомендация"
+  ],
+  "detailed_feedback": "Развернутый feedback на 2-3 параграфа о том, как прошло интервью в целом"
+}}
+"""
+        
+        try:
+            response = await self.generate_response(prompt)
+            
+            # Extract JSON from response
+            if "```json" in response:
+                response = response.split("```json")[1].split("```")[0].strip()
+            elif "```" in response:
+                response = response.split("```")[1].split("```")[0].strip()
+            
+            import json
+            result = json.loads(response)
+            
+            # Validate and set defaults
+            if "overall_score" not in result:
+                result["overall_score"] = 5.0
+            if "category_scores" not in result:
+                result["category_scores"] = {}
+            if "strengths" not in result:
+                result["strengths"] = []
+            if "weaknesses" not in result:
+                result["weaknesses"] = []
+            if "key_moments" not in result:
+                result["key_moments"] = []
+            if "recommendations" not in result:
+                result["recommendations"] = []
+            if "detailed_feedback" not in result:
+                result["detailed_feedback"] = "Интервью проведено."
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error generating interview report: {e}")
+            logger.exception("Full error traceback:")
+            # Return default report on error
+            return {
+                "overall_score": 5.0,
+                "category_scores": {
+                    "structure": 5,
+                    "questions_quality": 5,
+                    "active_listening": 5,
+                    "psychotype_handling": 5,
+                    "professionalism": 5
+                },
+                "strengths": ["Интервью было проведено"],
+                "weaknesses": ["Требуется больше практики"],
+                "key_moments": [],
+                "recommendations": [
+                    "Продолжайте практиковаться в проведении интервью",
+                    "Изучите техники активного слушания",
+                    "Подготовьте список вопросов заранее"
+                ],
+                "detailed_feedback": f"Не удалось сгенерировать подробный отчет из-за ошибки: {str(e)[:100]}"
+            }
+
 
 
 # Global instance

@@ -1,0 +1,224 @@
+@startuml HR_Training_Bot_Design
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam componentStyle rectangle
+
+title Диаграмма классов проектирования\nСистема обучения HR-интервьюеров
+left to right direction
+
+package "Презентационный слой" as presentation #E8F4F8 {
+    class "Telegram Бот" as TelegramBot {
+        + принять_команду()
+        + отправить_сообщение()
+        + обработать_файл()
+        + показать_клавиатуру()
+    }
+    
+    class "Управление состояниями" as StateManager {
+        + установить_состояние()
+        + получить_состояние()
+        + очистить_состояние()
+        + сохранить_данные()
+    }
+}
+
+package "Бизнес-логика" as business #FFF4E6 {
+    
+    package "Модуль онбординга" as onboarding {
+        class "Система шагов обучения" as StepSystem {
+            + получить_следующий_шаг()
+            + проверить_завершение()
+            + валидировать_ответ()
+            + оценить_выполнение()
+        }
+        
+        class "Контроль времени" as TimeTracker {
+            + зафиксировать_начало()
+            + рассчитать_длительность()
+            + проверить_скорость()
+            + выдать_предупреждение()
+        }
+        
+        class "Валидатор Excel" as ExcelValidator {
+            + проверить_структуру()
+            + извлечь_данные()
+            + найти_несоответствия()
+        }
+    }
+    
+    package "Модуль интервью" as interview {
+        class "Менеджер интервью" as InterviewManager {
+            + начать_интервью()
+            + выбрать_кандидата()
+            + обработать_вопрос()
+            + завершить_интервью()
+        }
+        
+        class "Симулятор кандидата" as CandidateSimulator {
+            + генерировать_ответ()
+            + применить_психотип()
+            + поддерживать_контекст()
+        }
+        
+        class "Детектор прощания" as FarewellDetector {
+            + анализировать_сообщение()
+            + определить_завершение()
+            + сгенерировать_прощание()
+        }
+        
+        class "Генератор отчетов" as ReportGenerator {
+            + оценить_интервью()
+            + создать_отчет()
+            + рассчитать_баллы()
+            + дать_рекомендации()
+        }
+    }
+    
+    package "Модуль экспертизы" as expert {
+        class "Система экспертной оценки" as ExpertSystem {
+            + показать_задания()
+            + принять_оценку()
+            + сохранить_комментарий()
+            + уведомить_студента()
+        }
+    }
+    
+    class "LLM Сервис" as LLMService {
+        + генерировать_текст()
+        + анализировать_данные()
+        + оценивать_качество()
+        + переключить_провайдера()
+    }
+}
+
+package "Слой данных" as data #E8F5E9 {
+    class "Пользователь" as User {
+        - telegram_id
+        - имя
+        - роль
+        + зарегистрировать()
+        + получить_статус()
+    }
+    
+    class "Шаг онбординга" as OnboardingStep {
+        - название
+        - тип
+        - порядок
+        - длительность
+        + получить_содержимое()
+    }
+    
+    class "Отправка задания" as Submission {
+        - файл
+        - текст_ответа
+        - время_начала
+        - оценка
+        + сохранить()
+        + вычислить_время()
+    }
+    
+    class "Профиль кандидата" as CandidateProfile {
+        - имя
+        - резюме
+        - категория
+        - психотип
+        + получить_данные()
+    }
+    
+    class "Сессия интервью" as InterviewSession {
+        - история_чата
+        - транскрипт
+        - оценка
+        - время
+        + сохранить_сообщение()
+        + завершить()
+    }
+    
+    interface "Хранилище данных" as DataStore {
+        + сохранить()
+        + получить()
+        + обновить()
+        + удалить()
+    }
+}
+
+package "Внешние сервисы" as external #FFE6E6 {
+    class "Gemini API" as GeminiAPI {
+        + генерировать_контент()
+        + чат()
+    }
+    
+    class "GigaChat API" as GigaChatAPI {
+        + получить_токен()
+        + отправить_запрос()
+    }
+}
+
+' Связи между компонентами
+TelegramBot --> StateManager : использует
+TelegramBot --> InterviewManager : делегирует
+TelegramBot --> StepSystem : делегирует
+TelegramBot --> ExpertSystem : делегирует
+
+InterviewManager --> CandidateSimulator : создает
+InterviewManager --> FarewellDetector : использует
+InterviewManager --> ReportGenerator : использует
+InterviewManager --> InterviewSession : управляет
+InterviewManager --> CandidateProfile : выбирает
+
+CandidateSimulator --> LLMService : запрашивает
+FarewellDetector --> LLMService : запрашивает
+ReportGenerator --> LLMService : запрашивает
+
+StepSystem --> TimeTracker : использует
+StepSystem --> ExcelValidator : использует
+StepSystem --> LLMService : использует
+StepSystem --> OnboardingStep : читает
+StepSystem --> Submission : создает
+
+ExcelValidator --> LLMService : запрашивает
+
+ExpertSystem --> Submission : проверяет
+ExpertSystem --> User : уведомляет
+
+LLMService --> GeminiAPI : основной
+LLMService --> GigaChatAPI : запасной
+
+User "1" -- "0..*" Submission : выполняет
+User "1" -- "0..*" InterviewSession : проводит
+OnboardingStep "1" -- "0..*" Submission : принимает
+CandidateProfile "1" -- "0..*" InterviewSession : участвует
+
+OnboardingStep --> DataStore : сохраняет в
+User --> DataStore : сохраняет в
+Submission --> DataStore : сохраняет в
+CandidateProfile --> DataStore : сохраняет в
+InterviewSession --> DataStore : сохраняет в
+
+note top of LLMService
+    Поддерживает автоматическое
+    переключение между Gemini и GigaChat
+    при недоступности основного API
+end note
+
+note top of InterviewManager
+    Управляет полным циклом интервью:
+    от приветствия до генерации отчета
+    с автоматическим определением завершения
+end note
+
+note top of StepSystem
+    Контролирует прохождение
+    13 шагов онбординга с проверкой
+    времени и LLM-валидацией
+end note
+
+note bottom of CandidateProfile
+    4 психотипа кандидатов:
+    - Target (целевой)
+    - Toxic (токсичный)
+    - Silent (молчаливый)
+    - Evasive (уклончивый)
+end note
+
+@enduml
