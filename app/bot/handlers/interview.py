@@ -1,4 +1,5 @@
 import json
+import logging
 from aiogram import Router, types, F
 from aiogram.fsm.context import FSMContext
 from app.bot.states import InterviewStates
@@ -6,6 +7,39 @@ from app.core.llm_client import llm_client
 from app.database.base import get_session
 from app.database.models import CandidateProfile, InterviewSession, User
 from sqlalchemy.future import select
+
+logger = logging.getLogger(__name__)
+
+# RAG Coach - lazy initialization
+_rag_coach_instance = None
+
+async def get_rag_coach():
+    """Initialize RAG Coach on first use"""
+    global _rag_coach_instance
+    if _rag_coach_instance is None:
+        try:
+            from pathlib import Path
+            from app.rag.vector_store import FAISSVectorStore
+            from app.rag.embeddings import EmbeddingGenerator
+            from app.rag.coach import HRCoach
+            
+            # Try to load existing index
+            index_path = Path(__file__).parent.parent.parent / "app" / "data" / "rag_index"
+            
+            if (index_path / "index.faiss").exists():
+                logger.info("📦 Loading RAG Coach...")
+                embedding_gen = EmbeddingGenerator()
+                vector_store = FAISSVectorStore(dimension=embedding_gen.dimension)
+                vector_store.load(index_path)
+                _rag_coach_instance = HRCoach(vector_store, embedding_gen)
+                logger.info(f"✅ RAG Coach loaded with {vector_store.size} documents")
+            else:
+                logger.warning("⚠️ RAG index not found. Run: python -m app.scripts.initialize_rag")
+        except Exception as e:
+            logger.error(f"Failed to load RAG Coach: {e}")
+            _rag_coach_instance = None
+    
+    return _rag_coach_instance
 
 router = Router()
 
@@ -145,7 +179,24 @@ async def process_chat(message: types.Message, state: FSMContext):
         await state.clear()
         return
     
-    # Not a farewell - generate normal candidate response
+    # Not a farewell - analyze question with RAG Coach first
+    coach = await get_rag_coach()
+    
+    if coach:
+        try:
+            # Analyze interviewer's question
+            feedback = await coach.analyze_question(user_message, context=history)
+            
+            if feedback.get("has_feedback"):
+                # Send coaching feedback BEFORE candidate response
+                await message.answer(
+                    feedback["message"],
+                    parse_mode="HTML"
+                )
+        except Exception as e:
+            logger.error(f"RAG Coach error: {e}", exc_info=True)
+    
+    # Generate normal candidate response
     response_text = await llm_client.simulate_candidate(resume, user_message, history, psychotype)
     
     history.append({"role": "model", "parts": [response_text]})

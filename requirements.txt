@@ -16,3 +16,5 @@ pytest-cov
 pytest-mock
 aiogram[test]
 aiosqlite
+faiss-cpu
+sentence-transformers
