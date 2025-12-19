@@ -10,8 +10,7 @@ async def cmd_start(message: types.Message, state: FSMContext):
     keyboard = types.ReplyKeyboardMarkup(
         keyboard=[
             [types.KeyboardButton(text="/onboarding")],
-            [types.KeyboardButton(text="🤖 /interview")],
-            [types.KeyboardButton(text="🧑‍💼 /expert"), types.KeyboardButton(text="ℹ️ /help")],
+            [types.KeyboardButton(text="/interview")],
         ],
         resize_keyboard=True,
     )

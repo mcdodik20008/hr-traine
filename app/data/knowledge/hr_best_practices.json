@@ -1,0 +1,109 @@
+{
+  "documents": [
+    {
+      "id": "bp_001",
+      "category": "best_practice",
+      "content": "Используйте открытые вопросы вместо закрытых. Вместо 'Вы умеете работать в команде?' спросите 'Расскажите о вашем опыте работы в команде'",
+      "tags": ["open_questions", "communication"],
+      "severity": "tip"
+    },
+    {
+      "id": "bp_002",
+      "category": "best_practice",
+      "content": "Техника STAR помогает получить структурированный ответ: попросите кандидата описать Ситуацию, Задачу, Действия и Результат",
+      "tags": ["STAR", "behavioral", "structured"],
+      "severity": "tip"
+    },
+    {
+      "id": "bp_003",
+      "category": "best_practice",
+      "content": "Задавайте уточняющие вопросы для получения конкретики: 'Можете привести пример?', 'Какие именно метрики улучшились?', 'Сколько времени это заняло?'",
+      "tags": ["probing", "specifics", "follow_up"],
+      "severity": "tip"
+    },
+    {
+      "id": "bp_004",
+      "category": "best_practice",
+      "content": "Активно слушайте кандидата. Не перебивайте, дайте закончить мысль. Делайте паузы после ответа - кандидат может добавить важную информацию",
+      "tags": ["active_listening", "silence", "patience"],
+      "severity": "info"
+    },
+    {
+      "id": "bp_005",
+      "category": "best_practice",
+      "content": "Задавайте поведенческие вопросы о прошлом опыте: 'Расскажите о ситуации, когда...', 'Приведите пример, как вы...' вместо гипотетических 'Что бы вы сделали, если...'",
+      "tags": ["behavioral", "past_experience", "concrete"],
+      "severity": "tip"
+    },
+    {
+      "id": "bp_006",
+      "category": "best_practice",
+      "content": "Копайте глубже при получении общих ответов. Если кандидат говорит 'мы сделали', спросите 'А какой была именно ваша роль?'",
+      "tags": ["clarification", "individual_contribution", "depth"],
+      "severity": "tip"
+    },
+    {
+      "id": "bp_007",
+      "category": "best_practice",
+      "content": "Проверяйте несоответствия в ответах. Если что-то не сходится с ранее сказанным, тактично уточните: 'Ранее вы упомянули... Не могли бы уточнить?'",
+      "tags": ["verification", "consistency", "red_flags"],
+      "severity": "info"
+    },
+    {
+      "id": "bp_008",
+      "category": "best_practice",
+      "content": "Давайте время на размышление при технических вопросах. Сказать 'Не торопитесь, подумайте' - это нормально",
+      "tags": ["technical", "thinking_time", "comfort"],
+      "severity": "info"
+    },
+    {
+      "id": "bp_009",
+      "category": "best_practice",
+      "content": "Обращайте внимание на невербальные сигналы и тон голоса. Неуверенность, защитная позиция или чрезмерная нервозность могут быть важными индикаторами",
+      "tags": ["non_verbal", "tone", "body_language"],
+      "severity": "info"
+    },
+    {
+      "id": "bp_010",
+      "category": "best_practice",
+      "content": "Задавайте вопросы про неудачи и обучение: 'Расскажите о проекте, который не удался. Какие выводы вы сделали?' Это показывает способность к рефлексии и развитию",
+      "tags": ["failures", "learning", "growth_mindset"],
+      "severity": "tip"
+    },
+    {
+      "id": "bp_011",
+      "category": "best_practice",
+      "content": "Проверяйте мотивацию конкретными вопросами: не 'Почему вы хотите у нас работать?', а 'Что именно в нашей компании/позиции вас привлекает?'",
+      "tags": ["motivation", "research", "genuine_interest"],
+      "severity": "tip"
+    },
+    {
+      "id": "bp_012",
+      "category": "best_practice",
+      "content": "Спрашивайте про командную работу через конкретные ситуации: 'Расскажите о конфликте в команде и как вы его разрешили'",
+      "tags": ["teamwork", "conflict_resolution", "soft_skills"],
+      "severity": "tip"
+    },
+    {
+      "id": "bp_013",
+      "category": "best_practice",
+      "content": "При проверке технических навыков просите объяснить сложные вещи простыми словами - это показывает глубину понимания",
+      "tags": ["technical", "depth_of_knowledge", "communication"],
+      "severity": "info"
+    },
+    {
+      "id": "bp_014",
+      "category": "best_practice",
+      "content": "Завершайте интервью вопросом 'Есть ли что-то, о чем я не спросил, но вы хотели бы рассказать?' - иногда кандидаты раскрывают важную информацию",
+      "tags": ["closing", "additional_info", "candidate_questions"],
+      "severity": "info"
+    },
+    {
+      "id": "bp_015",
+      "category": "best_practice",
+      "content": "Оставляйте время для вопросов кандидата. Качество вопросов показывает его заинтересованность и подготовку",
+      "tags": ["candidate_questions", "engagement", "research"],
+      "severity": "info"
+    }
+  ]
+}

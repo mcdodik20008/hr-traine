@@ -68,16 +68,16 @@
 npm install -g node-plantuml
 
 # Экспортировать в PNG
-puml generate architecture_design.puml -o architecture_design.png
+puml generate диаграмма проектирования.puml -o architecture_design.png
 
 # Экспортировать в SVG
-puml generate architecture_design.puml -o architecture_design.svg -t svg
+puml generate диаграмма проектирования.puml -o architecture_design.svg -t svg
 ```
 
 ### Вариант 4: Docker
 
 ```bash
-docker run --rm -v ${PWD}:/data plantuml/plantuml architecture_design.puml
+docker run --rm -v ${PWD}:/data plantuml/plantuml диаграмма проектирования.puml
 ```
 
 ## Структура проекта (для контекста)
