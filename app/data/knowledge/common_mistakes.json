@@ -1,0 +1,157 @@
+{
+    "documents": [
+        {
+            "id": "err_001",
+            "category": "common_mistake",
+            "content": "Не задавайте слишком много закрытых вопросов подряд (да/нет). Три закрытых вопроса подряд - это сигнал переключиться на открытые",
+            "tags": [
+                "closed_questions",
+                "question_types"
+            ],
+            "severity": "warning"
+        },
+        {
+            "id": "err_002",
+            "category": "common_mistake",
+            "content": "Избегайте перебивания кандидата. Даже если ответ кажется длинным, дайте закончить - иногда самое важное в конце",
+            "tags": [
+                "interruption",
+                "patience",
+                "listening"
+            ],
+            "severity": "warning"
+        },
+        {
+            "id": "err_003",
+            "category": "common_mistake",
+            "content": "Не делайте преждевременных выводов. Один хороший/плохой ответ не характеризует всего кандидата - оценивайте комплексно",
+            "tags": [
+                "bias",
+                "premature_judgment",
+                "objectivity"
+            ],
+            "severity": "warning"
+        },
+        {
+            "id": "err_004",
+            "category": "common_mistake",
+            "content": "Избегайте эффекта ореола: если кандидат из крутой компании или вуза, это не гарантирует его компетентность. Проверяйте конкретные навыки",
+            "tags": [
+                "halo_effect",
+                "bias",
+                "verification"
+            ],
+            "severity": "warning"
+        },
+        {
+            "id": "err_005",
+            "category": "common_mistake",
+            "content": "Не заполняйте всё время разговором. Паузы - это нормально, они дают кандидату время подумать и собраться с мыслями",
+            "tags": [
+                "silence",
+                "pauses",
+                "thinking_time"
+            ],
+            "severity": "info"
+        },
+        {
+            "id": "err_006",
+            "category": "common_mistake",
+            "content": "Не задавайте несколько вопросов одновременно ('Расскажите о проекте, технологиях и команде'). Кандидат ответит только на последний или запутается",
+            "tags": [
+                "multiple_questions",
+                "clarity",
+                "structure"
+            ],
+            "severity": "warning"
+        },
+        {
+            "id": "err_007",
+            "category": "common_mistake",
+            "content": "Не игнорируйте красные флаги: частая смена работы без объяснений, противоречия в ответах, негатив про всех бывших работодателей",
+            "tags": [
+                "red_flags",
+                "warning_signs",
+                "attention"
+            ],
+            "severity": "warning"
+        },
+        {
+            "id": "err_008",
+            "category": "common_mistake",
+            "content": "Избегайте вопросов 'из учебника' ('Какая ваша слабая сторона?'). Кандидаты готовят шаблонные ответы. Спрашивайте про реальные ситуации",
+            "tags": [
+                "cliche_questions",
+                "template_answers",
+                "authenticity"
+            ],
+            "severity": "info"
+        },
+        {
+            "id": "err_009",
+            "category": "common_mistake",
+            "content": "Не принимайте общие ответы типа 'Я командный игрок' без конкретики. Всегда просите примеры: 'Опишите ситуацию, которая это демонстрирует'",
+            "tags": [
+                "vague_answers",
+                "probing",
+                "examples"
+            ],
+            "severity": "warning"
+        },
+        {
+            "id": "err_010",
+            "category": "common_mistake",
+            "content": "Не доминируйте в разговоре. Если вы говорите больше 30% времени интервью - что-то не так. Интервью про кандидата, не про вас",
+            "tags": [
+                "talking_too_much",
+                "balance",
+                "listening"
+            ],
+            "severity": "warning"
+        },
+        {
+            "id": "err_011",
+            "category": "common_mistake",
+            "content": "Не забывайте делать заметки. Полагаться на память при оценке нескольких кандидатов - путь к ошибке и смещенным оценкам",
+            "tags": [
+                "note_taking",
+                "documentation",
+                "objectivity"
+            ],
+            "severity": "info"
+        },
+        {
+            "id": "err_012",
+            "category": "common_mistake",
+            "content": "Избегайте подтверждающего смещения: не ищите только подтверждения первого впечатления. Активно ищите информацию, которая может его опровергнуть",
+            "tags": [
+                "confirmation_bias",
+                "objectivity",
+                "critical_thinking"
+            ],
+            "severity": "warning"
+        },
+        {
+            "id": "err_013",
+            "category": "common_mistake",
+            "content": "Не сравнивайте кандидатов между собой напрямую. Оценивайте каждого по объективным критериям позиции, а не 'он лучше предыдущего'",
+            "tags": [
+                "comparison",
+                "objectivity",
+                "criteria"
+            ],
+            "severity": "info"
+        },
+        {
+            "id": "err_014",
+            "category": "common_mistake",
+            "content": "Не игнорируйте культурную совместимость. Даже отличный специалист может не подойти команде по ценностям и стилю работы",
+            "tags": [
+                "culture_fit",
+                "values",
+                "team_dynamics"
+            ],
+            "severity": "info"
+        }
+    ]
+}
